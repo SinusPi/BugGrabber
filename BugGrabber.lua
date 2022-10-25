@@ -220,7 +220,7 @@ do
 		return version, revision
 	end
 
-	local matchCache = setmetatable({}, { __index = function(self, object)
+	local versionMatchCache = setmetatable({}, { __index = function(self, object)
 		if type(object) ~= "string" or #object < 3 then return end
 		local found = nil
 		-- First see if it's a library
@@ -255,16 +255,17 @@ do
 			return found
 		end
 	end })
+	addon.versionMatchCache = versionMatchCache
 
 	local tmp = {}
 	local function replacer(start, object, tail)
 		-- Have we matched this object before on the same line?
 		-- (another pattern could re-match a previous match...)
 		if tmp[object] then return end
-		local found = matchCache[object]
+		local found = versionMatchCache[object]
 		if found then
 			tmp[object] = true
-			return (type(start) == "string" and start or "") .. object .. "-" .. found .. (type(tail) == "string" and tail or "")
+			return (type(start) == "string" and start or "") .. object .. (type(tail) == "string" and tail or "") .. (found and " [v" .. found .. "]" or "")
 		end
 	end
 
@@ -275,6 +276,7 @@ do
 		"()(Lib%u%a+%-?%d?%.?%d?)()" -- LibXanything-#.#, where X is any capital letter and -#.# is optional
 	}
 	function findVersions(line)
+		if true or BugGrabberDB.dont_add_versions then return line end  -- don't pollute file names -- SINUS
 		if not line or line:find("FrameXML\\") then return line end
 		for i = 1, 4 do
 			line = line:gsub(matchers[i], replacer)
@@ -612,4 +614,3 @@ function seterrorhandler() --[[ noop ]] end
 _G.SlashCmdList.BugGrabber = slashHandler
 _G.SLASH_BugGrabber1 = "/buggrabber"
 _G.BugGrabber = setmetatable({}, { __index = addon, __newindex = function() grabError("Modifications not allowed.") end, __metatable = false })
-
